@@ -1,5 +1,5 @@
-import { X, Sparkles, Droplets, Edit2, Trash2, Check, AlertTriangle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { X, Sparkles, Droplets, Edit2, Trash2, Check, AlertTriangle, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { ClothingItem } from '../types';
 
 interface ItemDetailsModalProps {
@@ -13,6 +13,7 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
   const [isEditing, setIsEditing] = useState(false);
   const [editedItem, setEditedItem] = useState<ClothingItem | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (item) {
@@ -23,6 +24,17 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
   }, [item]);
 
   if (!isOpen || !item || !editedItem) return null;
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setEditedItem({ ...editedItem, images: [reader.result as string] });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleConfirmDelete = () => {
     setItems(prev => prev.filter(i => i.id !== item.id));
@@ -99,13 +111,32 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
           <X className="w-5 h-5" />
         </button>
 
-        <div className="w-full h-64 sm:h-72 shrink-0 relative bg-[#1B2632]/5">
+        <div className="w-full h-64 sm:h-72 shrink-0 relative bg-[#1B2632]/5 group">
           <img 
-            src={item.images[0]} 
+            src={isEditing ? editedItem.images[0] : item.images[0]} 
             alt={item.name} 
             className="w-full h-full object-cover" 
           />
-          {!isEditing && (
+          
+          {isEditing ? (
+            <>
+              {/* Overlay for editing */}
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                <ImageIcon className="w-8 h-8 text-white mb-2" />
+                <span className="text-white font-medium text-sm">Change Photo</span>
+              </div>
+              <input 
+                type="file" 
+                accept="image/png, image/jpeg, image/webp" 
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={handleImageUpload}
+              />
+            </>
+          ) : (
             <div className="absolute bottom-4 right-4 flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#1B2632] bg-[#EEE9DF]/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5">
                 {item.status === 'clean' ? <Sparkles className="w-3.5 h-3.5" /> : <Droplets className="w-3.5 h-3.5 text-[#A35139]" />}

@@ -1,4 +1,5 @@
-import { Sun, Droplets, Check } from 'lucide-react';
+import { Sun, Droplets, Check, X } from 'lucide-react';
+import { useMemo } from 'react';
 import { ClothingItem, Outfit } from '../types';
 
 interface DashboardProps {
@@ -6,30 +7,81 @@ interface DashboardProps {
   outfitOfDay: Outfit | null;
   isOutfitLogged: boolean;
   onLogOutfit: (outfitId: string) => void;
+  onRemoveOutfit: () => void;
 }
 
-export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit }: DashboardProps) {
+export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onRemoveOutfit }: DashboardProps) {
   const dirtyItemsCount = items.filter(item => item.status === 'dirty').length;
-  
-  // Safely find most dirty item (will be null if items array is empty)
   const mostdirtyItem = items.length > 0 ? [...items].sort((a, b) => b.wearCount - a.wearCount)[0] : null;
+
+  // Dynamic Date and Greeting
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
+  const dateString = now.toLocaleDateString('en-GB', { 
+    weekday: 'long', 
+    day: 'numeric', 
+    month: 'long', 
+    year: 'numeric' 
+  });
+
+  // Generate Current Week (Monday - Sunday)
+  const weekDays = useMemo(() => {
+    const today = new Date();
+    const currentDay = today.getDay();
+    // In JS, 0 is Sunday. Distance to Monday:
+    const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+    
+    const monday = new Date(today);
+    monday.setDate(today.getDate() + distanceToMonday);
+
+    return Array.from({ length: 7 }).map((_, i) => {
+      const date = new Date(monday);
+      date.setDate(monday.getDate() + i);
+      return date;
+    });
+  }, []);
 
   const glassyCard = "bg-[#C9C1B1]/20 backdrop-blur-md border border-[#1B2632]/10 rounded-3xl";
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
+      
+      {/* Updated Header with Dynamic Date */}
       <header className="mb-8">
-        <h1 className="text-3xl font-semibold text-[#1B2632]">Morning, Oscar.</h1>
-        <p className="text-[#1B2632]/70 mt-1">Ready for the day?</p>
+        <h1 className="text-3xl font-semibold text-[#1B2632]">{greeting}, Oscar.</h1>
+        <p className="text-[#1B2632]/70 mt-1">{dateString}</p>
       </header>
+
+      {/* New Weekly Calendar Row */}
+      <div className="flex justify-between md:justify-start md:gap-8 mb-8 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        {weekDays.map((date, i) => {
+          const isToday = date.toDateString() === new Date().toDateString();
+          const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
+          const dayNumber = date.getDate();
+
+          return (
+            <div key={i} className="flex flex-col items-center gap-3 min-w-[3.5rem]">
+              <span className={`text-xs font-medium ${isToday ? 'text-[#1B2632]' : 'text-[#1B2632]/50'}`}>
+                {dayName}
+              </span>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center text-sm md:text-base font-semibold transition-colors ${
+                isToday ? 'bg-[#1B2632] text-[#EEE9DF] shadow-md' : 'bg-[#C9C1B1]/30 text-[#1B2632]'
+              }`}>
+                {dayNumber}
+              </div>
+            </div>
+          );
+        })}
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
-        {/* OOTD Card */}
+        {/* Streamlined OOTD Card */}
         <section className={`md:col-span-8 ${glassyCard} flex flex-col md:flex-row overflow-hidden p-2`}>
           {outfitOfDay ? (
             <>
-              <div className="w-full md:w-1/2 aspect-square rounded-2xl overflow-hidden shrink-0">
+              <div className="w-full md:w-1/2 aspect-square rounded-2xl overflow-hidden shrink-0 bg-[#C9C1B1]/10">
                 <img 
                   src={outfitOfDay.outfitImageUrl} 
                   alt={outfitOfDay.name}
@@ -38,20 +90,27 @@ export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit }: D
               </div>
               <div className="p-6 md:p-8 flex flex-col justify-center">
                 <h2 className="text-xs font-bold uppercase tracking-widest text-[#A35139] mb-2">Today's Fit</h2>
-                <h3 className="text-2xl font-semibold text-[#1B2632] mb-3">{outfitOfDay.name}</h3>
-                <p className="text-[#1B2632]/80 mb-6 leading-relaxed">
-                  A laid-back combo that works perfectly for your classes and grabbing coffee later.
-                </p>
-                {/* Dynamic Button State */}
+                <h3 className="text-2xl font-semibold text-[#1B2632] mb-6">{outfitOfDay.name}</h3>
+                
+                {/* Dynamic Button State with Undo Option */}
                 {isOutfitLogged ? (
-                  <button disabled className="bg-[#A35139] text-[#EEE9DF] px-6 py-2.5 rounded-full font-medium flex items-center gap-2 w-fit text-sm cursor-default shadow-inner">
-                    <Check className="w-4 h-4" />
-                    Wearing Today
-                  </button>
+                  <div className="flex items-center gap-3 mt-auto md:mt-0">
+                    <button disabled className="bg-[#A35139] text-[#EEE9DF] px-6 py-3 rounded-full font-medium flex items-center gap-2 text-sm cursor-default shadow-inner">
+                      <Check className="w-4 h-4" />
+                      Wearing Today
+                    </button>
+                    <button 
+                      onClick={onRemoveOutfit}
+                      className="p-3 rounded-full bg-[#1B2632]/5 hover:bg-[#1B2632]/15 text-[#1B2632] transition-colors"
+                      title="Clear today's outfit"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 ) : (
                   <button 
                     onClick={() => onLogOutfit(outfitOfDay.id)}
-                    className="bg-[#1B2632] text-[#EEE9DF] px-6 py-2.5 rounded-full font-medium hover:bg-[#1B2632]/90 transition-colors w-fit text-sm shadow-sm"
+                    className="bg-[#1B2632] text-[#EEE9DF] px-6 py-3 rounded-full font-medium hover:bg-[#1B2632]/90 transition-colors w-fit text-sm shadow-sm mt-auto md:mt-0"
                   >
                     Wear This
                   </button>

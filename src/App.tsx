@@ -19,16 +19,13 @@ import { Calendar } from './components/Calendar';
 import { ClothingItem, Outfit, CalendarEvent } from './types';
 
 export default function App() {
-  // 1. Initialize DB and pull live offline data
   const isDbReady = useDatabaseInit();
   const [currentView, setCurrentView] = useState('home');
 
-  // useLiveQuery acts just like useState, but it watches your IndexedDB for changes
   const items = useLiveQuery(() => db.items.toArray()) || [];
   const outfits = useLiveQuery(() => db.outfits.toArray()) || [];
   const events = useLiveQuery(() => db.events.toArray()) || [];
 
-  // 2. Bridge Functions: Intercept React state updates and write to the database
   const setItems = (action: React.SetStateAction<ClothingItem[]>) => {
     const updated = typeof action === 'function' ? (action as (prevState: ClothingItem[]) => ClothingItem[])(items) : action;
     db.transaction('rw', db.items, async () => {
@@ -53,12 +50,9 @@ export default function App() {
     });
   };
 
-  // 3. Smart Outfit of the Day Calculation
   const todayStr = new Date().toISOString().split('T')[0];
   const todaysEvent = events.find(e => e.date === todayStr);
   
-  // useMemo ensures the random suggestion stays locked in while navigating tabs, 
-  // but it generates a fresh random outfit every time you do a hard reload.
   const suggestedOutfit = useMemo(() => {
     if (outfits.length === 0) return null;
     
@@ -67,19 +61,14 @@ export default function App() {
       outfit.itemIds.every(id => cleanItemIds.has(id))
     );
     
-    // Use clean outfits if available, otherwise fallback to any outfit
     const pool = cleanOutfits.length > 0 ? cleanOutfits : outfits;
-    
-    // Pick a random outfit from the pool
     return pool[Math.floor(Math.random() * pool.length)];
   }, [items.length, outfits.length]); 
 
-  // If you clicked "Wear This", display the logged outfit. Otherwise, show the random suggestion.
   const dynamicOutfitOfDay = todaysEvent 
     ? outfits.find(o => o.id === todaysEvent.outfitId) || null
     : suggestedOutfit;
 
-  // The function to lock the outfit into the Calendar when "Wear This" is clicked
   const handleLogToday = (outfitId: string) => {
     const newEvent: CalendarEvent = {
       id: `event_${Date.now()}`,
@@ -87,7 +76,6 @@ export default function App() {
       outfitId,
     };
     
-    // Pipe this straight into Dexie using your existing bridge function
     setEvents((prev: CalendarEvent[]) => {
       const existingIndex = prev.findIndex(e => e.date === todayStr);
       if (existingIndex >= 0) {
@@ -99,7 +87,11 @@ export default function App() {
     });
   };
 
-  // Prevent UI from flashing empty data while Dexie boots up
+  // NEW: Function to safely clear today's logged outfit
+  const handleRemoveLogToday = () => {
+    setEvents((prev: CalendarEvent[]) => prev.filter(e => e.date !== todayStr));
+  };
+
   if (!isDbReady) {
     return (
       <div className="min-h-screen bg-[#EEE9DF] flex items-center justify-center text-[#1B2632]">
@@ -118,6 +110,7 @@ export default function App() {
             outfitOfDay={dynamicOutfitOfDay} 
             isOutfitLogged={!!todaysEvent}
             onLogOutfit={handleLogToday}
+            onRemoveOutfit={handleRemoveLogToday}
           />
         )}
         {currentView === 'wardrobe' && <Wardrobe items={items} setItems={setItems} />}
