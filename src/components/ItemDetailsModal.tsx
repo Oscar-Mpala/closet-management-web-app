@@ -58,6 +58,13 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
     });
   };
 
+  // NEW: Manual Dirty/Clean Toggle
+  const toggleStatus = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const newStatus = item.status === 'clean' ? 'dirty' : 'clean';
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
+  };
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
       <div 
@@ -71,7 +78,6 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
       
       <div className="relative w-full max-w-sm sm:max-w-md bg-[#C9C1B1]/40 backdrop-blur-xl border border-[#1B2632]/10 rounded-3xl overflow-y-auto shadow-2xl max-h-[90vh] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         
-        {/* Custom Delete Confirmation Overlay */}
         {showDeleteConfirm && (
           <div className="absolute inset-0 z-[110] flex items-center justify-center p-6 bg-[#EEE9DF]/95 backdrop-blur-xl animate-in fade-in duration-200">
             <div className="text-center">
@@ -120,7 +126,6 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
           
           {isEditing ? (
             <>
-              {/* Overlay for editing */}
               <div 
                 onClick={() => fileInputRef.current?.click()}
                 className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
@@ -137,11 +142,16 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
               />
             </>
           ) : (
-            <div className="absolute bottom-4 right-4 flex items-center gap-2">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-[#1B2632] bg-[#EEE9DF]/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5">
+            <div className="absolute bottom-4 right-4 flex items-center gap-2 z-10">
+              {/* NEW: Clickable Badge */}
+              <button 
+                onClick={toggleStatus}
+                title="Click to change laundry status"
+                className="text-[10px] font-bold uppercase tracking-widest text-[#1B2632] bg-[#EEE9DF]/90 backdrop-blur-md px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 hover:bg-[#EEE9DF] transition-colors"
+              >
                 {item.status === 'clean' ? <Sparkles className="w-3.5 h-3.5" /> : <Droplets className="w-3.5 h-3.5 text-[#A35139]" />}
                 {item.status === 'clean' ? 'Clean' : 'Needs Wash'}
-              </span>
+              </button>
             </div>
           )}
         </div>

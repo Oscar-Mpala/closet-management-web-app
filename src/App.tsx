@@ -22,12 +22,13 @@ export default function App() {
   const isDbReady = useDatabaseInit();
   const [currentView, setCurrentView] = useState('home');
 
-  const items = useLiveQuery(() => db.items.toArray()) || [];
+  const rawItems = useLiveQuery(() => db.items.toArray()) || [];
   const outfits = useLiveQuery(() => db.outfits.toArray()) || [];
   const events = useLiveQuery(() => db.events.toArray()) || [];
 
   const setItems = (action: React.SetStateAction<ClothingItem[]>) => {
-    const updated = typeof action === 'function' ? (action as (prevState: ClothingItem[]) => ClothingItem[])(items) : action;
+    // Action receives the raw items to preserve accurate DB states
+    const updated = typeof action === 'function' ? (action as (prevState: ClothingItem[]) => ClothingItem[])(rawItems) : action;
     db.transaction('rw', db.items, async () => {
       await db.items.clear();
       await db.items.bulkAdd(updated);
@@ -51,7 +52,34 @@ export default function App() {
   };
 
   const todayStr = new Date().toISOString().split('T')[0];
+  const currentMonth = todayStr.substring(0, 7); // e.g. "2026-09"
   const todaysEvent = events.find(e => e.date === todayStr);
+
+  // NEW: Dynamically calculate wear counts for the current month
+  const monthlyWearCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    
+    events
+      // Only count events from this month, up to today
+      .filter(e => e.date.startsWith(currentMonth) && e.date <= todayStr)
+      .forEach(event => {
+        const outfit = outfits.find(o => o.id === event.outfitId);
+        if (outfit) {
+          outfit.itemIds.forEach(id => {
+            counts.set(id, (counts.get(id) || 0) + 1);
+          });
+        }
+      });
+    return counts;
+  }, [events, outfits, currentMonth, todayStr]);
+
+  // NEW: Inject the dynamic wear counts into the items passed to your UI
+  const items = useMemo(() => {
+    return rawItems.map(item => ({
+      ...item,
+      wearCount: monthlyWearCounts.get(item.id) || 0
+    }));
+  }, [rawItems, monthlyWearCounts]);
   
   const suggestedOutfit = useMemo(() => {
     if (outfits.length === 0) return null;
@@ -85,11 +113,24 @@ export default function App() {
       }
       return [...prev, newEvent];
     });
+
+    // NEW: Automatically mark worn items as dirty
+    const outfit = outfits.find(o => o.id === outfitId);
+    if (outfit) {
+      setItems(prev => prev.map(i => {
+        // Only mark clean items in the outfit as dirty
+        if (outfit.itemIds.includes(i.id) && i.status === 'clean') {
+          return { ...i, status: 'dirty' };
+        }
+        return i;
+      }));
+    }
   };
 
-  // NEW: Function to safely clear today's logged outfit
   const handleRemoveLogToday = () => {
     setEvents((prev: CalendarEvent[]) => prev.filter(e => e.date !== todayStr));
+    // Note: We deliberately don't automatically mark items as clean here, 
+    // as they may have still been worn. You can manually toggle them back if it was a mistake.
   };
 
   if (!isDbReady) {
