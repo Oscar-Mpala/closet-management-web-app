@@ -1,5 +1,7 @@
-import { Home, Shirt, Layers, Droplets, Calendar } from 'lucide-react';
+// Sidebar.tsx
+import { Home, Shirt, Layers, Droplets, Calendar, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
+import { useSync } from '../hooks/useSync.ts';
 
 interface SidebarProps {
   currentView: string;
@@ -8,6 +10,7 @@ interface SidebarProps {
 
 export function Sidebar({ currentView, onViewChange }: SidebarProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { syncDatabase, isSyncing } = useSync();
 
   const navItems = [
     { icon: Home, label: 'Home', id: 'home' },
@@ -46,6 +49,19 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
           </button>
         ))}
       </nav>
+
+      <div className="p-4 border-t border-[#1B2632]/10 mt-auto">
+        <button
+          onClick={syncDatabase}
+          disabled={isSyncing}
+          className={`w-full flex items-center p-3 rounded-xl transition-colors bg-[#1B2632] text-[#EEE9DF] hover:bg-[#1B2632]/90 disabled:opacity-50`}
+        >
+          <RefreshCw className={`w-6 h-6 flex-shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
+          <span className={`ml-4 font-medium whitespace-nowrap transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>
+            {isSyncing ? 'Syncing...' : 'Sync Cloud'}
+          </span>
+        </button>
+      </div>
     </aside>
   );
 }

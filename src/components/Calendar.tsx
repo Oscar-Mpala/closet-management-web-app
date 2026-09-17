@@ -1,3 +1,4 @@
+// Calendar.tsx
 import React, { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Outfit, CalendarEvent } from '../types';
@@ -34,10 +35,13 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
     if (!selectedDate) return;
     
     const existingEventIndex = events.findIndex(e => e.date === selectedDate);
+    
+    // Stamps lastUpdated and safely reuses the ID if replacing an existing outfit
     const newEvent: CalendarEvent = {
-      id: `event_${Date.now()}`,
+      id: existingEventIndex >= 0 ? events[existingEventIndex].id : `event_${Date.now()}`,
       date: selectedDate,
       outfitId,
+      lastUpdated: Date.now(),
     };
 
     if (existingEventIndex >= 0) {
@@ -50,7 +54,6 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
     setIsModalOpen(false);
   };
 
-  // Fixed height classes so it fits perfectly on all screens without aspect-ratio blowout
   const cellHeight = "h-14 sm:h-20 lg:h-24 xl:h-28"; 
 
   const blanks = Array.from({ length: firstDayOfMonth }, (_, i) => (
@@ -73,7 +76,6 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
           isToday ? 'bg-[#C9C1B1]/40 ring-1 ring-[#A35139]/30' : 'bg-[#C9C1B1]/10'
         }`}
       >
-        {/* Date Number in top-left corner */}
         <span 
           className={`absolute top-1 left-1 sm:top-2 sm:left-2 text-[10px] sm:text-xs font-bold z-10 
           ${isToday ? 'text-[#A35139]' : 'text-[#1B2632]/70'} 
@@ -82,7 +84,6 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
           {day}
         </span>
         
-        {/* Full-bleed Outfit Image */}
         {wornOutfit && (
           <div className="absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity">
             {wornOutfit.outfitImageUrl ? (
@@ -100,8 +101,6 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
 
   return (
     <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
-      
-      {/* Responsive Header */}
       <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[#1B2632]">Calendar.</h1>
         
@@ -118,7 +117,6 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
         </div>
       </header>
 
-      {/* Grid Container */}
       <div className="bg-[#C9C1B1]/20 backdrop-blur-md border border-[#1B2632]/10 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
         <div className="grid grid-cols-7 mb-2 sm:mb-4">
           {daysOfWeek.map(day => (
@@ -133,7 +131,6 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
         </div>
       </div>
 
-      {/* Log Outfit Modal */}
       {isModalOpen && selectedDate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#EEE9DF]/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />

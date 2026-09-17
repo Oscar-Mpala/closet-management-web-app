@@ -16,6 +16,7 @@ export interface ClothingItem {
   season?: string[];
   fitProfile?: string;
   stance?: string;
+  lastUpdated: number;
 }
 
 export interface Outfit {
@@ -28,10 +29,12 @@ export interface Outfit {
   bottomId?: string;
   footwearId?: string;
   outerwearId?: string;
+  lastUpdated: number;
 }
 
 export interface CalendarEvent {
   id: string;
   date: string; // Format: YYYY-MM-DD
   outfitId: string;
+  lastUpdated: number;
 }

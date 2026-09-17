@@ -1,3 +1,4 @@
+// ItemDetailsModal.tsx
 import { X, Sparkles, Droplets, Edit2, Trash2, Check, AlertTriangle, Image as ImageIcon } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 import { ClothingItem } from '../types';
@@ -43,7 +44,8 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
   };
 
   const handleSave = () => {
-    setItems(prev => prev.map(i => (i.id === editedItem.id ? editedItem : i)));
+    // Stamps lastUpdated when an item's details are edited and saved
+    setItems(prev => prev.map(i => (i.id === editedItem.id ? { ...editedItem, lastUpdated: Date.now() } : i)));
     setIsEditing(false);
   };
 
@@ -58,11 +60,11 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
     });
   };
 
-  // NEW: Manual Dirty/Clean Toggle
   const toggleStatus = (e: React.MouseEvent) => {
     e.stopPropagation();
     const newStatus = item.status === 'clean' ? 'dirty' : 'clean';
-    setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus } : i));
+    // Stamps lastUpdated when an item's dirty/clean status is toggled from the details view
+    setItems(prev => prev.map(i => i.id === item.id ? { ...i, status: newStatus, lastUpdated: Date.now() } : i));
   };
 
   return (
@@ -143,7 +145,6 @@ export function ItemDetailsModal({ item, isOpen, onClose, setItems }: ItemDetail
             </>
           ) : (
             <div className="absolute bottom-4 right-4 flex items-center gap-2 z-10">
-              {/* NEW: Clickable Badge */}
               <button 
                 onClick={toggleStatus}
                 title="Click to change laundry status"

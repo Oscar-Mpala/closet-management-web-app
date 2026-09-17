@@ -13,11 +13,13 @@ export function Laundry({ items, setItems }: LaundryProps) {
   const dirtyItemsCount = dirtyItems.length;
 
   const handleMarkClean = (id: string) => {
-    setItems(prev => prev.map(item => item.id === id ? { ...item, status: 'clean' } : item));
+    // Stamps lastUpdated when a single item is marked clean
+    setItems(prev => prev.map(item => item.id === id ? { ...item, status: 'clean', lastUpdated: Date.now() } : item));
   };
 
   const handleWashAll = () => {
-    setItems(prev => prev.map(item => ({ ...item, status: 'clean' })));
+    // Stamps lastUpdated across all items being marked clean
+    setItems(prev => prev.map(item => ({ ...item, status: 'clean', lastUpdated: Date.now() })));
   };
 
   const breakdown = {

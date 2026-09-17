@@ -68,7 +68,8 @@ export function SaveOutfitModal({ isOpen, onClose, setOutfits, existingOutfit, c
         outfitImageUrl: imageBase64,
         topId: currentCanvasItems.topId,
         bottomId: currentCanvasItems.bottomId,
-        footwearId: currentCanvasItems.footwearId
+        footwearId: currentCanvasItems.footwearId,
+        lastUpdated: Date.now(),
       };
       setOutfits(prev => [newOutfit, ...prev]);
     }

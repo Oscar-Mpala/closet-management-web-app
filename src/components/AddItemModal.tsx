@@ -66,6 +66,7 @@ export function AddItemModal({ isOpen, onClose, setItems }: AddItemModalProps) {
       size,
       season: seasons,
       fitProfile: fitProfile || undefined,
+      lastUpdated: Date.now(),
     };
 
     setItems(prev => [...prev, newItem]);
