@@ -54,7 +54,7 @@ export function Sidebar({ currentView, onViewChange }: SidebarProps) {
         <button
           onClick={syncDatabase}
           disabled={isSyncing}
-          className={`w-full flex items-center p-3 rounded-xl transition-colors bg-[#1B2632] text-[#EEE9DF] hover:bg-[#1B2632]/90 disabled:opacity-50`}
+          className={`w-full flex items-center p-3 rounded-xl transition-colors text-[#1B2632]/60 hover:bg-[#EEE9DF]/50 hover:text-[#1B2632] disabled:opacity-50`}
         >
           <RefreshCw className={`w-6 h-6 flex-shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
           <span className={`ml-4 font-medium whitespace-nowrap transition-opacity duration-300 ${isExpanded ? 'opacity-100' : 'opacity-0'}`}>

@@ -1,6 +1,8 @@
-import { Sun, Droplets, Check, X } from 'lucide-react';
+// Dashboard.tsx
+import { Sun, Droplets, Check, X, RefreshCw } from 'lucide-react';
 import { useMemo } from 'react';
 import { ClothingItem, Outfit } from '../types';
+import { useSync } from '../hooks/useSync';
 
 interface DashboardProps {
   items: ClothingItem[];
@@ -11,10 +13,10 @@ interface DashboardProps {
 }
 
 export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onRemoveOutfit }: DashboardProps) {
+  const { syncDatabase, isSyncing } = useSync();
   const dirtyItemsCount = items.filter(item => item.status === 'dirty').length;
   const mostdirtyItem = items.length > 0 ? [...items].sort((a, b) => b.wearCount - a.wearCount)[0] : null;
 
-  // Dynamic Date and Greeting
   const now = new Date();
   const hour = now.getHours();
   const greeting = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
@@ -25,11 +27,9 @@ export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onR
     year: 'numeric' 
   });
 
-  // Generate Current Week (Monday - Sunday)
   const weekDays = useMemo(() => {
     const today = new Date();
     const currentDay = today.getDay();
-    // In JS, 0 is Sunday. Distance to Monday:
     const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
     
     const monday = new Date(today);
@@ -47,13 +47,22 @@ export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onR
   return (
     <div className="max-w-5xl mx-auto space-y-6">
       
-      {/* Updated Header with Dynamic Date */}
-      <header className="mb-8">
-        <h1 className="text-3xl font-semibold text-[#1B2632]">{greeting}, Oscar.</h1>
-        <p className="text-[#1B2632]/70 mt-1">{dateString}</p>
+      <header className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-semibold text-[#1B2632]">{greeting}, Oscar.</h1>
+          <p className="text-[#1B2632]/70 mt-1">{dateString}</p>
+        </div>
+        
+        <button
+          onClick={syncDatabase}
+          disabled={isSyncing}
+          title="Sync with Cloud"
+          className="p-2.5 rounded-full transition-all text-[#1B2632]/40 hover:bg-[#C9C1B1]/40 hover:text-[#1B2632] disabled:opacity-50 mt-1"
+        >
+          <RefreshCw className={`w-5 h-5 ${isSyncing ? 'animate-spin' : ''}`} />
+        </button>
       </header>
 
-      {/* New Weekly Calendar Row */}
       <div className="flex justify-between md:justify-start md:gap-8 mb-8 overflow-x-auto pb-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {weekDays.map((date, i) => {
           const isToday = date.toDateString() === new Date().toDateString();
@@ -77,7 +86,6 @@ export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onR
 
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         
-        {/* Streamlined OOTD Card */}
         <section className={`md:col-span-8 ${glassyCard} flex flex-col md:flex-row overflow-hidden p-2`}>
           {outfitOfDay ? (
             <>
@@ -92,7 +100,6 @@ export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onR
                 <h2 className="text-xs font-bold uppercase tracking-widest text-[#A35139] mb-2">Today's Fit</h2>
                 <h3 className="text-2xl font-semibold text-[#1B2632] mb-6">{outfitOfDay.name}</h3>
                 
-                {/* Dynamic Button State with Undo Option */}
                 {isOutfitLogged ? (
                   <div className="flex items-center gap-3 mt-auto md:mt-0">
                     <button disabled className="bg-[#A35139] text-[#EEE9DF] px-6 py-3 rounded-full font-medium flex items-center gap-2 text-sm cursor-default shadow-inner">
@@ -132,7 +139,6 @@ export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onR
         </section>
 
         <div className="md:col-span-4 flex flex-col gap-6">
-          {/* Weather Widget */}
           <section className={`${glassyCard} p-6 flex items-center justify-between`}>
             <div>
               <h2 className="text-xs font-bold uppercase tracking-widest text-[#1B2632]/50 mb-1">Bulawayo</h2>
@@ -141,7 +147,6 @@ export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onR
             <Sun className="w-8 h-8 text-[#A35139]" strokeWidth={1.5} />
           </section>
 
-          {/* Laundry Alert */}
           <section className={`${glassyCard} p-6 flex-1 flex flex-col justify-center`}>
             <div className="flex items-center gap-3 mb-3">
               <Droplets className="w-6 h-6 text-[#A35139]" strokeWidth={1.5} />
@@ -162,7 +167,6 @@ export function Dashboard({ items, outfitOfDay, isOutfitLogged, onLogOutfit, onR
           </section>
         </div>
 
-        {/* Safely Render Most Dirty Item */}
         {mostdirtyItem && (
           <section className={`md:col-span-12 ${glassyCard} overflow-hidden p-2 flex flex-col sm:flex-row items-center gap-6`}>
             <div className="w-full sm:w-48 md:w-64 aspect-square rounded-2xl overflow-hidden shrink-0">
