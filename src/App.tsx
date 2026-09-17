@@ -1,3 +1,4 @@
+// App.tsx
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
@@ -27,7 +28,6 @@ export default function App() {
   const events = useLiveQuery(() => db.events.toArray()) || [];
 
   const setItems = (action: React.SetStateAction<ClothingItem[]>) => {
-    // Action receives the raw items to preserve accurate DB states
     const updated = typeof action === 'function' ? (action as (prevState: ClothingItem[]) => ClothingItem[])(rawItems) : action;
     db.transaction('rw', db.items, async () => {
       await db.items.clear();
@@ -52,15 +52,13 @@ export default function App() {
   };
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const currentMonth = todayStr.substring(0, 7); // e.g. "2026-09"
+  const currentMonth = todayStr.substring(0, 7);
   const todaysEvent = events.find(e => e.date === todayStr);
 
-  // NEW: Dynamically calculate wear counts for the current month
   const monthlyWearCounts = useMemo(() => {
     const counts = new Map<string, number>();
     
     events
-      // Only count events from this month, up to today
       .filter(e => e.date.startsWith(currentMonth) && e.date <= todayStr)
       .forEach(event => {
         const outfit = outfits.find(o => o.id === event.outfitId);
@@ -73,7 +71,6 @@ export default function App() {
     return counts;
   }, [events, outfits, currentMonth, todayStr]);
 
-  // NEW: Inject the dynamic wear counts into the items passed to your UI
   const items = useMemo(() => {
     return rawItems.map(item => ({
       ...item,
@@ -98,14 +95,17 @@ export default function App() {
     : suggestedOutfit;
 
   const handleLogToday = (outfitId: string) => {
-    const newEvent: CalendarEvent = {
-      id: `event_${Date.now()}`,
-      date: todayStr,
-      outfitId,
-    };
-    
     setEvents((prev: CalendarEvent[]) => {
       const existingIndex = prev.findIndex(e => e.date === todayStr);
+      
+      const newEvent: CalendarEvent = {
+        // Reuse ID if it exists so we overwrite the exact Firebase document
+        id: existingIndex >= 0 ? prev[existingIndex].id : `event_${Date.now()}`,
+        date: todayStr,
+        outfitId,
+        lastUpdated: Date.now(), // <-- Missing timestamp added
+      };
+      
       if (existingIndex >= 0) {
         const updated = [...prev];
         updated[existingIndex] = newEvent;
@@ -114,13 +114,11 @@ export default function App() {
       return [...prev, newEvent];
     });
 
-    // NEW: Automatically mark worn items as dirty
     const outfit = outfits.find(o => o.id === outfitId);
     if (outfit) {
       setItems(prev => prev.map(i => {
-        // Only mark clean items in the outfit as dirty
         if (outfit.itemIds.includes(i.id) && i.status === 'clean') {
-          return { ...i, status: 'dirty' };
+          return { ...i, status: 'dirty', lastUpdated: Date.now() }; // <-- Missing timestamp added here too
         }
         return i;
       }));
@@ -129,8 +127,6 @@ export default function App() {
 
   const handleRemoveLogToday = () => {
     setEvents((prev: CalendarEvent[]) => prev.filter(e => e.date !== todayStr));
-    // Note: We deliberately don't automatically mark items as clean here, 
-    // as they may have still been worn. You can manually toggle them back if it was a mistake.
   };
 
   if (!isDbReady) {
