@@ -1,5 +1,6 @@
+// Calendar.tsx
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, X, Trash2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { Outfit, CalendarEvent } from '../types';
 
 interface CalendarProps {
@@ -34,12 +35,13 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
     if (!selectedDate) return;
     
     const existingEventIndex = events.findIndex(e => e.date === selectedDate);
+    
+    // Stamps lastUpdated and safely reuses the ID if replacing an existing outfit
     const newEvent: CalendarEvent = {
-      // Reuse ID so Firebase updates the exact same document instead of making duplicates
       id: existingEventIndex >= 0 ? events[existingEventIndex].id : `event_${Date.now()}`,
       date: selectedDate,
       outfitId,
-      lastUpdated: Date.now(), // Fixed: Timestamp added for syncing
+      lastUpdated: Date.now(),
     };
 
     if (existingEventIndex >= 0) {
@@ -47,19 +49,19 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
       updatedEvents[existingEventIndex] = newEvent;
       setEvents(updatedEvents);
     } else {
-      setEvents([...events, newEvent]);
+      // Only create a new event if they selected a real outfit (not 'none' on an empty day)
+      if (outfitId !== 'none') {
+        setEvents([...events, newEvent]);
+      }
     }
     setIsModalOpen(false);
   };
 
-  // NEW: Function to clear a logged day entirely
-  const handleClearDate = () => {
-    if (!selectedDate) return;
-    setEvents((prev) => prev.filter(e => e.date !== selectedDate));
-    setIsModalOpen(false);
-  };
+  const cellHeight = "h-14 sm:h-20 lg:h-24 xl:h-28"; 
 
-  const blanks = Array.from({ length: firstDayOfMonth }, (_, i) => <div key={`blank-${i}`} className="p-4" />);
+  const blanks = Array.from({ length: firstDayOfMonth }, (_, i) => (
+    <div key={`blank-${i}`} className={`${cellHeight} rounded-lg sm:rounded-2xl bg-transparent`} />
+  ));
   
   const days = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
@@ -73,55 +75,60 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
       <div 
         key={day} 
         onClick={() => handleDayClick(dateString)}
-        className={`relative aspect-square p-2 border border-[#1B2632]/5 rounded-2xl cursor-pointer hover:bg-[#1B2632]/5 transition-colors flex flex-col items-center justify-center group ${isToday ? 'bg-[#C9C1B1]/30' : 'bg-[#C9C1B1]/10'}`}
+        className={`relative ${cellHeight} border border-[#1B2632]/5 rounded-lg sm:rounded-2xl cursor-pointer hover:border-[#1B2632]/30 transition-all flex flex-col overflow-hidden group ${
+          isToday ? 'bg-[#C9C1B1]/40 ring-1 ring-[#A35139]/30' : 'bg-[#C9C1B1]/10'
+        }`}
       >
-        <span className={`text-sm font-medium z-10 ${isToday ? 'text-[#A35139]' : 'text-[#1B2632]'}`}>{day}</span>
+        <span 
+          className={`absolute top-1 left-1 sm:top-2 sm:left-2 text-[10px] sm:text-xs font-bold z-10 
+          ${isToday ? 'text-[#A35139]' : 'text-[#1B2632]/70'} 
+          ${wornOutfit ? 'bg-[#EEE9DF]/80 backdrop-blur-md px-1.5 py-0.5 rounded-md shadow-sm' : ''}`}
+        >
+          {day}
+        </span>
         
         {wornOutfit && (
-          <div className="absolute inset-0 p-1 opacity-40 group-hover:opacity-100 transition-opacity">
-            <div className="w-full h-full rounded-xl overflow-hidden">
-              {wornOutfit.outfitImageUrl ? (
-                <img src={wornOutfit.outfitImageUrl} alt="Worn outfit" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-[#1B2632]/10" /> 
-              )}
-            </div>
+          <div className="absolute inset-0 opacity-80 group-hover:opacity-100 transition-opacity">
+            {wornOutfit.outfitImageUrl ? (
+              <img src={wornOutfit.outfitImageUrl} alt="Worn outfit" className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full bg-[#1B2632]/10 flex items-center justify-center">
+                 <span className="text-[10px] font-medium text-[#1B2632]/50 mt-4">Logged</span>
+              </div>
+            )}
           </div>
         )}
       </div>
     );
   });
 
-  // Check if the currently opened modal's date already has an event
-  const currentEvent = selectedDate ? events.find(e => e.date === selectedDate) : null;
-
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <header className="flex items-center justify-between">
-        <h1 className="text-3xl font-semibold text-[#1B2632]">Calendar.</h1>
+    <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-[#1B2632]">Calendar.</h1>
         
-        <div className="flex items-center gap-4 bg-[#C9C1B1]/20 backdrop-blur-md px-4 py-2 rounded-full border border-[#1B2632]/10">
-          <button onClick={handlePrevMonth} className="p-1 hover:bg-[#1B2632]/10 rounded-full transition-colors">
+        <div className="flex items-center justify-between w-full sm:w-auto gap-2 sm:gap-4 bg-[#C9C1B1]/20 backdrop-blur-md px-2 sm:px-4 py-2 rounded-full border border-[#1B2632]/10">
+          <button onClick={handlePrevMonth} className="p-2 hover:bg-[#1B2632]/10 rounded-full transition-colors">
             <ChevronLeft className="w-5 h-5 text-[#1B2632]" />
           </button>
-          <span className="font-medium text-[#1B2632] min-w-[120px] text-center">
+          <span className="font-medium text-[#1B2632] min-w-[120px] text-center text-sm sm:text-base">
             {monthNames[month]} {year}
           </span>
-          <button onClick={handleNextMonth} className="p-1 hover:bg-[#1B2632]/10 rounded-full transition-colors">
+          <button onClick={handleNextMonth} className="p-2 hover:bg-[#1B2632]/10 rounded-full transition-colors">
             <ChevronRight className="w-5 h-5 text-[#1B2632]" />
           </button>
         </div>
       </header>
 
-      <div className="bg-[#C9C1B1]/20 backdrop-blur-md border border-[#1B2632]/10 rounded-3xl p-6">
-        <div className="grid grid-cols-7 mb-4">
+      <div className="bg-[#C9C1B1]/20 backdrop-blur-md border border-[#1B2632]/10 rounded-2xl sm:rounded-3xl p-3 sm:p-6">
+        <div className="grid grid-cols-7 mb-2 sm:mb-4">
           {daysOfWeek.map(day => (
-            <div key={day} className="text-center text-xs font-bold uppercase tracking-widest text-[#1B2632]/50">
+            <div key={day} className="text-center text-[10px] sm:text-xs font-bold uppercase tracking-widest text-[#1B2632]/50">
               {day}
             </div>
           ))}
         </div>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-7 gap-1 sm:gap-2">
           {blanks}
           {days}
         </div>
@@ -130,42 +137,35 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
       {isModalOpen && selectedDate && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#EEE9DF]/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)} />
-          <div className="relative w-full max-w-2xl bg-[#EEE9DF]/90 backdrop-blur-xl border border-[#1B2632]/10 rounded-3xl p-6 shadow-2xl flex flex-col max-h-[80vh]">
-            
-            <div className="flex items-center justify-between mb-6 shrink-0">
-              <h2 className="text-xl font-semibold text-[#1B2632]">
+          <div className="relative w-full max-w-2xl bg-[#EEE9DF]/95 backdrop-blur-xl border border-[#1B2632]/10 rounded-3xl p-4 sm:p-6 shadow-2xl flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between mb-4 sm:mb-6 shrink-0">
+              <h2 className="text-lg sm:text-xl font-semibold text-[#1B2632]">
                 Log Outfit for {selectedDate}
               </h2>
-              
-              <div className="flex items-center gap-2">
-                {/* NEW: Clear Day Button */}
-                {currentEvent && (
-                  <button 
-                    onClick={handleClearDate}
-                    className="flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-[#A35139] bg-[#A35139]/10 hover:bg-[#A35139]/20 transition-colors"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Clear Day
-                  </button>
-                )}
-                
-                <button onClick={() => setIsModalOpen(false)} className="p-2 rounded-full hover:bg-[#1B2632]/5 text-[#1B2632]">
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              <button onClick={() => setIsModalOpen(false)} className="p-2 rounded-full hover:bg-[#1B2632]/5 text-[#1B2632]">
+                <X className="w-5 h-5" />
+              </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="flex-1 overflow-y-auto pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 pb-4">
+                
+                {/* NEW: Tombstone 'Clear Day' Tile */}
+                <div 
+                  onClick={() => handleLogOutfit('none')}
+                  className="aspect-square rounded-2xl overflow-hidden cursor-pointer relative group border border-[#1B2632]/10 hover:border-[#A35139] transition-all shadow-sm hover:shadow-md bg-[#C9C1B1]/30 flex items-center justify-center"
+                >
+                  <div className="flex flex-col items-center gap-2 text-[#1B2632]/60 group-hover:text-[#A35139] transition-colors">
+                    <X className="w-8 h-8 sm:w-10 sm:h-10" />
+                    <span className="text-[10px] sm:text-xs font-bold uppercase tracking-widest">Clear Day</span>
+                  </div>
+                </div>
+
                 {outfits.map(outfit => (
                   <div 
                     key={outfit.id}
                     onClick={() => handleLogOutfit(outfit.id)}
-                    className={`aspect-square rounded-2xl overflow-hidden cursor-pointer relative group border transition-colors ${
-                      currentEvent?.outfitId === outfit.id 
-                        ? 'border-[#A35139] ring-2 ring-[#A35139]/20' // Highlight currently selected outfit
-                        : 'border-[#1B2632]/10 hover:border-[#A35139]'
-                    }`}
+                    className="aspect-square rounded-2xl overflow-hidden cursor-pointer relative group border border-[#1B2632]/10 hover:border-[#A35139] transition-all shadow-sm hover:shadow-md"
                   >
                     {outfit.outfitImageUrl ? (
                       <img src={outfit.outfitImageUrl} alt={outfit.name} className="w-full h-full object-cover" />
@@ -174,10 +174,9 @@ export function Calendar({ outfits, events, setEvents }: CalendarProps) {
                          <span className="text-xs font-medium text-[#1B2632]/50 text-center px-2">{outfit.name}</span>
                       </div>
                     )}
-                    
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-                      <div className="opacity-0 group-hover:opacity-100 bg-[#A35139] text-[#EEE9DF] rounded-full p-2 transform scale-75 group-hover:scale-100 transition-all shadow-md">
-                        <Plus className="w-5 h-5" />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <div className="opacity-0 group-hover:opacity-100 bg-[#A35139] text-[#EEE9DF] rounded-full p-2 sm:p-3 transform scale-75 group-hover:scale-100 transition-all shadow-lg">
+                        <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
                       </div>
                     </div>
                   </div>

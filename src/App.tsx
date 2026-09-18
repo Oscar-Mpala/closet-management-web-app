@@ -53,7 +53,7 @@ export default function App() {
 
   const todayStr = new Date().toISOString().split('T')[0];
   const currentMonth = todayStr.substring(0, 7);
-  const todaysEvent = events.find(e => e.date === todayStr);
+const todaysEvent = events.find(e => e.date === todayStr && e.outfitId !== 'none');
 
   const monthlyWearCounts = useMemo(() => {
     const counts = new Map<string, number>();
@@ -125,9 +125,21 @@ export default function App() {
     }
   };
 
-  const handleRemoveLogToday = () => {
-    setEvents((prev: CalendarEvent[]) => prev.filter(e => e.date !== todayStr));
-  };
+const handleRemoveLogToday = () => {
+  setEvents((prev: CalendarEvent[]) => {
+    const existingIndex = prev.findIndex(e => e.date === todayStr);
+    if (existingIndex >= 0) {
+      const updated = [...prev];
+      updated[existingIndex] = {
+        ...updated[existingIndex],
+        outfitId: 'none',
+        lastUpdated: Date.now()
+      };
+      return updated;
+    }
+    return prev;
+  });
+};
 
   if (!isDbReady) {
     return (
